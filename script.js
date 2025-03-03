@@ -1,4 +1,4 @@
-const API_URL = "http://127.0.0.1:5000"; // Change this to your backend URL after deployment
+const API_URL = "http://127.0.0.1:5000";
 
 // Register User
 async function register() {
@@ -52,8 +52,8 @@ function logout() {
     window.location.href = "index.html";
 }
 
-// Add Customer
-async function addCustomer() {
+// Add or Update Customer
+async function addOrUpdateCustomer() {
     const name = document.getElementById("name").value;
     const mobile = document.getElementById("customer_mobile").value;
     const balance = document.getElementById("balance").value || 0;
@@ -75,10 +75,10 @@ async function addCustomer() {
 
     const data = await response.json();
     if (response.ok) {
-        alert("Customer added successfully!");
+        alert("Customer added/updated successfully!");
         fetchCustomers();
     } else {
-        alert(data.error || "Failed to add customer");
+        alert(data.error || "Failed to add/update customer");
     }
 }
 
@@ -89,72 +89,19 @@ async function fetchCustomers() {
         method: "GET",
         headers: { "Authorization": `Bearer ${token}` }
     });
-
+    
     const customers = await response.json();
     const table = document.getElementById("customerTable");
     table.innerHTML = "";
-
-    customers.forEach((customer, index) => {
-        table.innerHTML += `
-            <tr>
-                <td>${customer.name}</td>
-                <td>${customer.mobile}</td>
-                <td>
-                    <input type="number" value="${customer.balance}" id="balance_${index}">
-                    <button onclick="updateBalance(${customer.id}, ${index})">Update</button>
-                </td>
-                <td>
-                    <button onclick="generateInvoice('${customer.name}', ${customer.id}, ${customer.balance}')">Invoice</button>
-                </td>
-            </tr>
-        `;
+    
+    customers.forEach(({ name, mobile, balance }) => {
+        table.innerHTML += `<tr>
+            <td>${name}</td>
+            <td>${mobile}</td>
+            <td>${balance}</td>
+            <td><button onclick="generateInvoice('${name}', '${mobile}', ${balance})">Invoice</button></td>
+        </tr>`;
     });
-}
-
-// Update Customer Balance
-async function updateBalance(customerID, index) {
-    const newBalance = document.getElementById(`balance_${index}`).value;
-    const token = localStorage.getItem("token");
-
-    const response = await fetch(`${API_URL}/update_balance`, {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ customerID, newBalance })
-    });
-
-    const data = await response.json();
-    if (response.ok) {
-        alert("Balance updated successfully!");
-        fetchCustomers();
-    } else {
-        alert(data.error || "Failed to update balance");
-    }
-}
-
-// Generate Invoice
-function generateInvoice(name, id, amount) {
-    document.getElementById("invoiceName").innerText = name;
-    document.getElementById("invoiceID").innerText = id;
-    document.getElementById("invoiceAmount").innerText = amount;
-    document.getElementById("invoiceSignature").innerHTML = `
-        <span style="font-family: cursive;">${name}</span> &nbsp;
-        <span style="font-family: serif;">${name}</span>
-    `;
-
-    document.getElementById("invoiceModal").style.display = "block";
-}
-
-// Close Invoice Modal
-function closeInvoice() {
-    document.getElementById("invoiceModal").style.display = "none";
-}
-
-// Print Invoice
-function printInvoice() {
-    window.print();
 }
 
 // Search Customer
@@ -165,6 +112,28 @@ function searchCustomer() {
     rows.forEach(row => {
         row.style.display = row.innerText.toLowerCase().includes(input) ? "" : "none";
     });
+}
+
+// Generate Invoice
+function generateInvoice(name, mobile, balance) {
+    const invoiceWindow = window.open("", "_blank");
+    invoiceWindow.document.write(`
+        <html>
+        <head><title>Invoice</title></head>
+        <body>
+            <h2>Invoice</h2>
+            <p>Customer: <strong>${name}</strong></p>
+            <p>Mobile: <strong>${mobile}</strong></p>
+            <p>Amount: <strong>₹${balance}</strong></p>
+            <p><strong>Signature:</strong> <i style="font-family: cursive;">${name}</i></p>
+            <p>Company Name: <strong>UK Lacony</strong></p>
+            <p>Ref: ADL1006 | T%C APPLY</p>
+            <p>Thanks for Adding!</p>
+        </body>
+        </html>
+    `);
+    invoiceWindow.document.close();
+    invoiceWindow.print();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
